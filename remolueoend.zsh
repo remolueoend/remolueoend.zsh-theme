@@ -146,4 +146,4 @@ function prompt_remolueoend_preview {
   prompt_preview_theme 'remolueoend'
 }
 
-prompt_remo_setup "$@"
+prompt_remolueoend_setup "$@"
