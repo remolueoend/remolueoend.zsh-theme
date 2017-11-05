@@ -1,12 +1,17 @@
 {
   "name": "remolueoend.zsh-theme",
-  "version": "1.0.0",
+  "version": "0.0.0-development",
   "description":
     "Prezto ZSH theme based on Sorin, using emojis for tracking GIT context.",
   "repository": "git@github.com:remolueoend/remolueoend.zsh-theme.git",
   "author": "Remo Zumsteg <remolueoend@users.noreply.github.com>",
   "license": "GPL 3.0",
   "scripts": {
-    "postinstall": "./scripts/install.sh"
+    "postinstall": "./scripts/install.sh",
+    "semantic-release":
+      "semantic-release pre && npm publish && semantic-release post"
+  },
+  "devDependencies": {
+    "semantic-release": "^8.2.0"
   }
 }
