@@ -23,7 +23,7 @@ cd remolueoend.zsh-theme
 # use ./scripts/uninstall.sh to uninstall the theme.
 ```
 
-## Actvating
+## Activating
 To activate the theme for all shell instances, update the theme settings in your `~/.preztorc` file:
 ```
 zstyle ':prezto:module:prompt' theme 'remolueoend'
