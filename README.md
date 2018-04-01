@@ -31,3 +31,6 @@ zstyle ':prezto:module:prompt' theme 'remolueoend'
 
 For previewing the theme, use: `prompt remolueoend`.
 If you want to activate the theme for the current shell only, use the command `prompt remolueoend`.
+
+## Troubleshooting
+Depending on your terminal, the wrong used version of Unicode may infer the cursor position when typing. If your're using iTerm2, you have to enable `Unicode 9 Width`. This settings can be found under `Profile > [PROFILE_NAME] > Text > Text Rendering`.
