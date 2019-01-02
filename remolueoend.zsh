@@ -125,7 +125,7 @@ function prompt_remolueoend_setup {
   zstyle ':prezto:module:git:info:renamed' format '🌀'
   zstyle ':prezto:module:git:info:stashed' format '🔸'
   zstyle ':prezto:module:git:info:unmerged' format '🤞'
-  zstyle ':prezto:module:git:info:untracked' format '✨'
+  zstyle ':prezto:module:git:info:untracked' format '🔺'
   zstyle ':prezto:module:git:info:dirty' format '💩'
   zstyle ':prezto:module:git:info:clean' format '🎉'
   zstyle ':prezto:module:git:info:keys' format \
