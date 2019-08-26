@@ -8,6 +8,7 @@
   "license": "GPL 3.0",
   "scripts": {
     "postinstall": "./scripts/install.sh",
+    "postuninstall": "./scripts/uninstall.sh",
     "semantic-release":
       "semantic-release pre && npm publish && semantic-release post"
   },
