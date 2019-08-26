@@ -17,7 +17,7 @@ yarn global add remolueoend.zsh-theme
 
 ### Manual installation:
 ```sh
-git clone git@github.com:remolueoend/remolueoend.zsh-theme.git
+git clone https://github.com/remolueoend/remolueoend.zsh-theme.git
 cd remolueoend.zsh-theme
 ./scripts/install.sh
 # use ./scripts/uninstall.sh to uninstall the theme.
