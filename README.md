@@ -1,5 +1,5 @@
 # remolueoend.zsh-theme
-Prezto ZSH theme based on Sorin, using emojis for tracking GIT context.
+Prezto ZSH theme based on Agnoster.
 
 ## Prerequisites
 This theme currenly only works with prezto: https://github.com/sorin-ionescu/prezto.
