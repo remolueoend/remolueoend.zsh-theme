@@ -1,149 +1,182 @@
+# vim:ft=zsh ts=2 sw=2 sts=2
+#
+# Based on: https://github.com/agnoster/agnoster-zsh-theme
+# A Powerline-inspired theme for ZSH
+#
+# # README
+#
+# In order for this theme to render correctly, you will need a
+# [Powerline-patched font](https://gist.github.com/1595572).
+#
+# In addition, I recommend the
+# [Solarized theme](https://github.com/altercation/solarized/) and, if you're
+# using it on Mac OS X, [iTerm 2](http://www.iterm2.com/) over Terminal.app -
+# it has significantly better color fidelity.
+#
+# # Goals
+#
+# The aim of this theme is to only show you *relevant* information. Like most
+# prompts, it will only show git information when in a git working directory.
+# However, it goes a step further: everything from the current user and
+# hostname to whether the last call exited with an error to whether background
+# jobs are running in this shell will all be displayed automatically when
+# appropriate.
 
-#
-# A simple theme that displays relevant, contextual information,
-# based on theme Sorin (Sorin Ionescu <sorin.ionescu@gmail.com>)
-#
-# Authors:
-#   Remo <https://github.com/remolueoend>, Sorin Ionescu <sorin.ionescu@gmail.com>
-#
+### Segments of the prompt, default order declaration
 
-#
-# 16 Terminal Colors
-# -- ---------------
-#  0 black
-#  1 red
-#  2 green
-#  3 yellow
-#  4 blue
-#  5 magenta
-#  6 cyan
-#  7 white
-#  8 bright black
-#  9 bright red
-# 10 bright green
-# 11 bright yellow
-# 12 bright blue
-# 13 bright magenta
-# 14 bright cyan
-# 15 bright white
-#
+typeset -aHg AGNOSTER_PROMPT_SEGMENTS=(
+  # prompt_status
+  # prompt_context
+  prompt_virtualenv
+  prompt_dir
+  prompt_git
+  prompt_end
+)
 
-# Load dependencies.
-pmodload 'helper'
+### Segment drawing
+# A few utility functions to make it easy and re-usable to draw segmented prompts
 
-function prompt_remolueoend_pwd {
+CURRENT_BG='NONE'
+if [[ -z "$PRIMARY_FG" ]]; then
+  PRIMARY_FG=black
+fi
+
+# Characters
+SEGMENT_SEPARATOR="\ue0b0"
+PLUSMINUS="\u00b1"
+BRANCH="\ue0a0"
+DETACHED="\u27a6"
+CROSS="\u2718"
+LIGHTNING="\u26a1"
+GEAR="\u2699"
+
+# Begin a segment
+# Takes two arguments, background and foreground. Both can be omitted,
+# rendering default background/foreground.
+prompt_segment() {
+  local bg fg
+  [[ -n $1 ]] && bg="%K{$1}" || bg="%k"
+  [[ -n $2 ]] && fg="%F{$2}" || fg="%f"
+  if [[ $CURRENT_BG != 'NONE' && $1 != $CURRENT_BG ]]; then
+    print -n "%{$bg%F{$CURRENT_BG}%}$SEGMENT_SEPARATOR%{$fg%}"
+  else
+    print -n "%{$bg%}%{$fg%}"
+  fi
+  CURRENT_BG=$1
+  [[ -n $3 ]] && print -n $3
+}
+
+# End the prompt, closing any open segments
+prompt_end() {
+  if [[ -n $CURRENT_BG ]]; then
+    print -n "%{%k%F{$CURRENT_BG}%}$SEGMENT_SEPARATOR"
+  else
+    print -n "%{%k%}"
+  fi
+  print -n "%{%f%}"
+  CURRENT_BG=''
+}
+
+### Prompt components
+# Each component will draw itself, and hide itself if no information needs to be shown
+
+# Context: user@hostname (who am I and where am I)
+prompt_context() {
+  local user=`whoami`
+
+  if [[ "$user" != "$DEFAULT_USER" || -n "$SSH_CONNECTION" ]]; then
+    prompt_segment $PRIMARY_FG default " %(!.%{%F{yellow}%}.)$user@%m "
+  fi
+}
+
+# Git: branch/detached head, dirty status
+prompt_git() {
+  local color ref
+  is_dirty() {
+    test -n "$(git status --porcelain --ignore-submodules)"
+  }
+  ref="$vcs_info_msg_0_"
+  if [[ -n "$ref" ]]; then
+    if is_dirty; then
+      color=yellow
+      ref="${ref} $PLUSMINUS"
+    else
+      color=green
+      ref="${ref} "
+    fi
+    if [[ "${ref/.../}" == "$ref" ]]; then
+      ref="$BRANCH $ref"
+    else
+      ref="$DETACHED ${ref/.../}"
+    fi
+    prompt_segment $color $PRIMARY_FG
+    print -n " $ref"
+  fi
+}
+
+# Dir: current working directory
+function prompt_dir {
   local pwd="${PWD/#$HOME/~}"
 
   if [[ "$pwd" == (#m)[/~] ]]; then
-    _prompt_remolueoend_pwd="[$MATCH]"
+    local display_pwd=" $MATCH "
     unset MATCH
   else
-    _prompt_remolueoend_pwd="[${${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}//\%/%%}/${${pwd:t}//\%/%%}]"
+    local display_pwd=" ${${${${(@j:/:M)${(@s:/:)pwd}##.#?}:h}%/}//\%/%%}/${${pwd:t}//\%/%%} "
+  fi
+  prompt_segment blue $PRIMARY_FG $display_pwd
+}
+
+
+# Status:
+# - was there an error
+# - am I root
+# - are there background jobs?
+prompt_status() {
+  local symbols
+  symbols=()
+  [[ $RETVAL -ne 0 ]] && symbols+="%{%F{red}%}$CROSS"
+  [[ $UID -eq 0 ]] && symbols+="%{%F{yellow}%}$LIGHTNING"
+  [[ $(jobs -l | wc -l) -gt 0 ]] && symbols+="%{%F{cyan}%}$GEAR"
+
+  [[ -n "$symbols" ]] && prompt_segment $PRIMARY_FG default " $symbols "
+}
+
+# Display current virtual environment
+prompt_virtualenv() {
+  if [[ -n $VIRTUAL_ENV ]]; then
+    color=cyan
+    prompt_segment $color $PRIMARY_FG
+    print -Pn " $(basename $VIRTUAL_ENV) "
   fi
 }
 
-function prompt_remolueoend_git_info {
-  if (( _prompt_remolueoend_precmd_async_pid > 0 )); then
-    # Append Git status.
-    if [[ -s "$_prompt_remolueoend_precmd_async_data" ]]; then
-      alias typeset='typeset -g'
-      source "$_prompt_remolueoend_precmd_async_data"
-      RPROMPT+='${git_info:+${(e)git_info[status]}}'
-      unalias typeset
-    fi
-
-    # Reset PID.
-    _prompt_remolueoend_precmd_async_pid=0
-
-    # Redisplay prompt.
-    zle && zle reset-prompt
-  fi
+## Main prompt
+prompt_agnoster_main() {
+  RETVAL=$?
+  CURRENT_BG='NONE'
+  for prompt_segment in "${AGNOSTER_PROMPT_SEGMENTS[@]}"; do
+    [[ -n $prompt_segment ]] && $prompt_segment
+  done
 }
 
-function prompt_remolueoend_precmd_async {
-  # Get Git repository information.
-  if (( $+functions[git-info] )); then
-    git-info
-    typeset -p git_info >! "$_prompt_remolueoend_precmd_async_data"
-  fi
-
-  # Signal completion to parent process.
-  kill -WINCH $$
+prompt_agnoster_precmd() {
+  vcs_info
+  PROMPT='%{%f%b%k%}$(prompt_agnoster_main) '
 }
 
-function prompt_remolueoend_precmd {
-  setopt LOCAL_OPTIONS
-  unsetopt XTRACE KSH_ARRAYS
-
-  # Format PWD.
-  prompt_remolueoend_pwd
-
-  # Define prompts.
-  RPROMPT='${editor_info[overwrite]}%(?:: )${VIM:+" %B%F{6}V%f%b"}'
-
-  # Kill the old process of slow commands if it is still running.
-  if (( _prompt_remolueoend_precmd_async_pid > 0 )); then
-    kill -KILL "$_prompt_remolueoend_precmd_async_pid" &>/dev/null
-  fi
-
-  # Compute slow commands in the background.
-  trap prompt_remolueoend_git_info WINCH
-  prompt_remolueoend_precmd_async &!
-  _prompt_remolueoend_precmd_async_pid=$!
-}
-
-function prompt_remolueoend_setup {
-  setopt LOCAL_OPTIONS
-  unsetopt XTRACE KSH_ARRAYS
-  prompt_opts=(cr percent subst)
-  _prompt_remolueoend_precmd_async_pid=0
-  _prompt_remolueoend_precmd_async_data="${TMPPREFIX}-prompt_remolueoend_data"
-
-  # Load required functions.
+prompt_agnoster_setup() {
   autoload -Uz add-zsh-hook
+  autoload -Uz vcs_info
 
-  # Add hook for calling git-info before each command.
-  add-zsh-hook precmd prompt_remolueoend_precmd
+  prompt_opts=(cr subst percent)
 
-  # Set editor-info parameters.
-  zstyle ':prezto:module:editor:info:completing' format '%B%F{7}...%f%b'
-  zstyle ':prezto:module:editor:info:keymap:primary' format ''
-  zstyle ':prezto:module:editor:info:keymap:primary:overwrite' format ' %F{3}♺%f'
-  zstyle ':prezto:module:editor:info:keymap:alternate' format ' %B%F{2}❮%F{3}❮%F{1}❮%f%b'
+  add-zsh-hook precmd prompt_agnoster_precmd
 
-  # Set git-info parameters.
-  zstyle ':prezto:module:git:info' verbose 'yes'
-  zstyle ':prezto:module:git:info:action' format '%F{7}:%f%%B%F{9}%s%f%%b'
-  zstyle ':prezto:module:git:info:added' format ' %%B%F{2}✚%f%%b'
-  zstyle ':prezto:module:git:info:ahead' format ' %%B%F{13}⇧%f%%b'
-  zstyle ':prezto:module:git:info:behind' format ' %%B%F{13}⇩%f%%b'
-  zstyle ':prezto:module:git:info:branch' format ' %%B%F{2}%b %f%%b'
-  zstyle ':prezto:module:git:info:commit' format ' %%B%F{3}➦ %.7c%f%%b'
-  zstyle ':prezto:module:git:info:deleted' format '🚫'
-  zstyle ':prezto:module:git:info:modified' format '🔥'
-  zstyle ':prezto:module:git:info:position' format ' %%B%F{13}%p%f%%b'
-  zstyle ':prezto:module:git:info:renamed' format '🌀'
-  zstyle ':prezto:module:git:info:stashed' format '🔸'
-  zstyle ':prezto:module:git:info:unmerged' format '🤞'
-  zstyle ':prezto:module:git:info:untracked' format '🔺'
-  zstyle ':prezto:module:git:info:dirty' format '💩'
-  zstyle ':prezto:module:git:info:clean' format '🎉'
-  zstyle ':prezto:module:git:info:keys' format \
-    'status' '$(coalesce "%b" "%p" "%c")%s%A%B%C%D%S%a%d%m%r%U%u'
-
-  # Define prompts.
-  PROMPT='${SSH_TTY:+"%F{9}%n%f%F{7}@%f%F{3}%m%f "}%F{4}${_prompt_remolueoend_pwd}%(!. %B%F{1}#%f%b.)${editor_info[keymap]} '
-  RPROMPT=''
-  SPROMPT='zsh: correct %F{1}%R%f to %F{2}%r%f [nyae]? '
+  zstyle ':vcs_info:*' enable git
+  zstyle ':vcs_info:*' check-for-changes false
+  zstyle ':vcs_info:git*' formats '%b'
+  zstyle ':vcs_info:git*' actionformats '%b (%a)'
 }
 
-function prompt_remolueoend_preview {
-  local +h PROMPT=''
-  local +h RPROMPT=''
-  local +h SPROMPT=''
-
-  editor-info 2>/dev/null
-  prompt_preview_theme 'remolueoend'
-}
-
-prompt_remolueoend_setup "$@"
+prompt_agnoster_setup "$@"
