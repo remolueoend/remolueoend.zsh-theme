@@ -1,6 +1,7 @@
 #!/usr/bin/env sh
 
-THEME_DIR="${THEME_DIR:-$HOME/.zprezto/modules/prompt/functions}"
+PREZTO_DIR="${ZDOTDIR:-$HOME}/.zprezto"
+THEME_DIR="${THEME_DIR:-$PREZTO_DIR/modules/prompt/functions}"
 THEME_FILE="$THEME_DIR/prompt_remolueoend_setup"
 
 echo "trying to uninstall remolueoend under $THEME_FILE"
