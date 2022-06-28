@@ -29,7 +29,7 @@ typeset -aHg AGNOSTER_PROMPT_SEGMENTS=(
   # prompt_context
   prompt_virtualenv
   prompt_dir
-  prompt_git
+  # prompt_git
   prompt_end
 )
 
